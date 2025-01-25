@@ -1,69 +1,134 @@
-// function to get the user's code submission from the page
-function getUserCode() {
-    // try multiple selectors for code elements since the page structure might vary
-    const codeSelectors = [
-        'div.overflow-hidden pre > code',
-        'div.relative.w-full.overflow-hidden pre > code', 
-        'pre > code',
-        '[class*="code-container"] code',
-        '[class*="editor"] code'
-    ];
+/***************************************************
+ * content.js – Revised to detect code when error occurs
+ ***************************************************/
 
+/**
+ * The single, very specific selector you gave for the code block 
+ * that appears only on error.
+ */
+const ERROR_CODE_SELECTOR = `
+  #\\36 d67eff6-a6e0-9fa1-ee77-9c34d81c9e9f 
+  > div 
+  > div 
+  > div 
+  > div.w-full.flex-1.overflow-y-auto 
+  > div 
+  > div:nth-child(2) 
+  > div.relative.w-full.overflow-hidden.rounded-lg.bg-fill-quaternary.dark\\:bg-fill-quaternary.pb-7 
+  > div.px-4.py-3 
+  > div 
+  > pre 
+  > code
+`.replace(/\s+/g, ' ');
+
+/**
+ * Another specific selector for the submit button 
+ * (this might differ from your real environment).
+ */
+const SUBMIT_BUTTON_SELECTOR = `
+  #editor > div.flex.items-center.justify-between.px-3.h-auto.py-1.pl-3.pr-1
+  > div.relative.flex.overflow-hidden.rounded.bg-fill-tertiary.dark\\:bg-fill-tertiary.\\!bg-transparent
+  > div.flex-none.flex
+  > div:nth-child(2) > div:nth-child(2) > div > button
+`.replace(/\s+/g, ' ');
+
+
+// Attempt to extract user code from the DOM
+function getUserCode() {
     console.log("Attempting to get user code...");
 
+    /***************************************************
+     * 1) If there's an error-based code block
+     ***************************************************/
+    const errorCodeBlock = document.querySelector(ERROR_CODE_SELECTOR);
+    if (errorCodeBlock) {
+        const errCode = errorCodeBlock.textContent;
+        if (errCode && errCode.trim()) {
+            console.log(
+                "Found code in error block using ERROR_CODE_SELECTOR:\n",
+                errCode.substring(0, 100), "..."
+            );
+            return errCode.trim();
+        }
+    }
 
-    // try each selector until we find a code element
-    for (const selector of codeSelectors) {
-        const codeElement = document.querySelector(selector);
-        if (codeElement) {
-            const code = codeElement.textContent;
-            console.log("Found code using selector:", selector);
-            if (code) {
-                return code;
+    /***************************************************
+     * 2) Attempt to read from Monaco editor lines
+     ***************************************************/
+    const monacoContainer = document.querySelector('.monaco-editor .view-lines');
+    if (monacoContainer) {
+        const lineElements = monacoContainer.querySelectorAll('.view-line');
+        if (lineElements.length > 0) {
+            const codeLines = Array.from(lineElements).map(line => line.innerText);
+            const joinedCode = codeLines.join('\n').trim();
+            if (joinedCode) {
+                console.log("Found code in Monaco editor:", joinedCode.substring(0, 100), "...");
+                return joinedCode;
             }
         }
     }
 
+    /***************************************************
+     * 3) Fallback: try multiple known <pre><code> selectors
+     ***************************************************/
+    const codeSelectors = [
+        'div.overflow-hidden pre > code',
+        'div.relative.w-full.overflow-hidden pre > code',
+        'pre > code',
+        '[class*="code-container"] code',
+        '[class*="editor"] code'
+    ];
+    for (const selector of codeSelectors) {
+        const codeElement = document.querySelector(selector);
+        if (codeElement) {
+            const code = codeElement.textContent;
+            if (code && code.trim()) {
+                console.log("Found code using selector:", selector);
+                return code.trim();
+            }
+        }
+    }
 
-    // if no code found through selectors, try xpath as a last resort
+    /***************************************************
+     * 4) If still no code, try an XPath expression
+     ***************************************************/
     const xpath = "//pre/code[contains(text(), 'class') or contains(text(), 'def')]";
     const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
     if (result.singleNodeValue) {
         const code = result.singleNodeValue.textContent;
-        console.log("Found code using XPath");
-        return code;
+        if (code && code.trim()) {
+            console.log("Found code using XPath");
+            return code.trim();
+        }
     }
 
-    console.log("No code found");
+    // If everything fails:
+    console.log("No code found in the DOM.");
     return null;
 }
 
 
-// function to check if submission was successful and get any error messages
+// Check if submission was successful or if there's an error result
 function getSubmissionResult() {
-    // try different selectors that might contain the submission status
+    console.log("Checking submission result...");
+
     const resultSelectors = [
-        // success state selectors
+        // success
         '.text-green-s span',
         '[class*="success"]',
-        
-        // error state selectors
+
+        // error/fail
         '.space-y-4.m-0 .flex.items-center span',
         '[class*="error"]',
         '[class*="wrong"]',
         '[data-e2e-locator="submission-result"] span'
     ];
 
-    console.log("Checking submission result...");
-
-
-    // check each selector for a result element
     for (const selector of resultSelectors) {
         const element = document.querySelector(selector);
         if (element) {
             const text = element.textContent.trim();
             console.log("Found result element:", selector, text);
-
             return {
                 success: text.includes('Accepted'),
                 error: !text.includes('Accepted') ? text : null,
@@ -72,8 +137,7 @@ function getSubmissionResult() {
         }
     }
 
-
-    // fallback: look for any error-related elements if no result found
+    // fallback: look for any error containers
     const possibleErrorContainers = document.querySelectorAll('[class*="error"], [class*="wrong"], [class*="fail"]');
     for (const container of possibleErrorContainers) {
         const text = container.textContent.trim();
@@ -87,7 +151,7 @@ function getSubmissionResult() {
         }
     }
 
-    console.log("No result found");
+    console.log("No definitive submission result found.");
     return {
         success: false,
         error: null,
@@ -96,18 +160,18 @@ function getSubmissionResult() {
 }
 
 
-// function to gather all relevant problem information
+// Gather all relevant problem info (title, description, code, etc.)
 function getProblemInfo() {
-    const title = document.querySelector('[data-cy="question-title"]')?.textContent || 
-                 document.querySelector('.css-v3d350')?.textContent || 
-                 'Unknown Problem';
+    const title =
+        document.querySelector('[data-cy="question-title"]')?.textContent ||
+        document.querySelector('.css-v3d350')?.textContent ||
+        'Unknown Problem';
 
-    // Try to get problem description
-    const description = document.querySelector('[data-cy="question-content"]')?.textContent || 
-                       document.querySelector('.content__u3I1.question-content__JfgR')?.textContent ||
-                       '';
+    const description =
+        document.querySelector('[data-cy="question-content"]')?.textContent ||
+        document.querySelector('.content__u3I1.question-content__JfgR')?.textContent ||
+        '';
 
-    // create object with basic problem details
     const problemInfo = {
         title,
         description,
@@ -119,13 +183,11 @@ function getProblemInfo() {
 
     console.log("Gathered problem info:", problemInfo);
 
-
-    // try to extract example test cases from problem description
+    // Attempt to extract example test cases from the problem description
     const descriptionArea = document.querySelector('[data-track-load="description_content"]');
     if (descriptionArea) {
         const text = descriptionArea.textContent;
         const exampleMatches = text.match(/Example \d+:[\s\S]*?(?=Example \d+:|$)/g);
-        
         if (exampleMatches) {
             problemInfo.examples = exampleMatches.map(example => {
                 const inputMatch = example.match(/Input:.*$/m);
@@ -141,45 +203,36 @@ function getProblemInfo() {
     return problemInfo;
 }
 
-
-// function to handle when user submits their code
+// Main logic to handle the "Submit" button click
 function handleSubmitClick() {
     console.log("Submit button clicked!");
-    
-    // wait a bit for submission to start processing
+
     setTimeout(() => {
-        // poll for submission results
         let attempts = 0;
-        const maxAttempts = 20; // give up after 10 seconds
-        
+        const maxAttempts = 20; // ~10 seconds
         const checkInterval = setInterval(() => {
             attempts++;
-            console.log(`Checking submission (Attempt ${attempts})`);
-            
-            // get current state
+            console.log(`Checking submission (Attempt ${attempts})...`);
+
             const code = getUserCode();
             const result = getSubmissionResult();
-            
-            console.log("Current code:", code?.substring(0, 100) + "...");
+            console.log("Current code (first 100 chars):", code?.substring(0, 100) || "N/A");
             console.log("Current result:", result);
-            
-            // check if we have everything we need or should stop trying
-            if ((code && (result.success || result.error)) || attempts >= maxAttempts) {
+
+            const haveDefinitiveResult = result.success || result.error;
+            if ((code && haveDefinitiveResult) || attempts >= maxAttempts) {
                 clearInterval(checkInterval);
-                
+
                 if (code) {
-                    // prepare submission data
                     const problemInfo = {
                         ...getProblemInfo(),
                         userCode: code,
                         submissionResult: result,
                         timestamp: new Date().toISOString()
                     };
-                    
-                    console.log("Saving submission:", problemInfo);
-                    
-                    // clear old data and save new submission
-                    chrome.storage.local.clear(() => {
+
+                    console.log("Sending submission info to background:", problemInfo);
+                    if (chrome?.runtime?.sendMessage) {
                         chrome.runtime.sendMessage({
                             action: "saveProblemInfo",
                             data: problemInfo
@@ -190,7 +243,9 @@ function handleSubmitClick() {
                             }
                             console.log('Submission saved:', response);
                         });
-                    });
+                    } else {
+                        console.error("chrome.runtime.sendMessage is not available.");
+                    }
                 } else {
                     console.log("No code found after maximum attempts");
                 }
@@ -200,33 +255,46 @@ function handleSubmitClick() {
 }
 
 
-// startup initialization
-console.log("Content script loaded");
+// We keep track of the last button we attached to, to avoid duplicates
+let lastButton = null;
 
+// Function to find (and attach to) the new or replaced "Submit" button
+function attachSubmitButtonHandler() {
+    const button = document.querySelector(SUBMIT_BUTTON_SELECTOR);
+    if (button && button !== lastButton) {
+        console.log("Found submit button:", button);
 
-// watch for submit button to appear
-const observer = new MutationObserver((mutations, obs) => {
-    const submitButton = document.querySelector('button[data-e2e-locator="console-submit-button"]');
-    if (submitButton) {
-        console.log("Found submit button");
-        submitButton.addEventListener('click', handleSubmitClick);
-        obs.disconnect();
+        // remove old listener if we had a previous button
+        if (lastButton) {
+            lastButton.removeEventListener('click', handleSubmitClick);
+        }
+        // attach new
+        button.addEventListener('click', handleSubmitClick);
+        lastButton = button;
         console.log("Submit button detection initialized");
     }
+}
+
+// We'll continuously observe the DOM in case the button changes
+const observer = new MutationObserver(() => {
+    attachSubmitButtonHandler();
 });
 
-
-// start observing dom changes
-observer.observe(document, {
+observer.observe(document.documentElement, {
     childList: true,
     subtree: true
 });
 
+// Attempt an initial attach
+attachSubmitButtonHandler();
 
-// backup click handler for dynamic button creation
+// (Optional) Backup event listener
 document.addEventListener('click', (e) => {
-    if (e.target.matches('button[data-e2e-locator="console-submit-button"]')) {
+    const button = document.querySelector(SUBMIT_BUTTON_SELECTOR);
+    if (button && (e.target === button || button.contains(e.target))) {
         console.log("Submit button clicked through backup listener!");
         handleSubmitClick();
     }
 });
+
+console.log("Content script loaded");

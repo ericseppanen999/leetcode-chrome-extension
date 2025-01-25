@@ -1,14 +1,16 @@
 import config from './config.js';
 
 
-
-// handle messages from content script and popup
+// Handle messages from content script and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    
     if (request.action === "saveProblemInfo") {
-        // clear any existing data before saving new submission
+        
+        // Clear any existing data before saving new submission
         chrome.storage.local.clear(() => {
-            // then save only the new submission
-            chrome.storage.local.set({ 
+            
+            // Then save only the new submission
+            chrome.storage.local.set({
                 problemInfo: request.data,
                 lastUpdated: new Date().toISOString()
             }, function() {
@@ -18,15 +20,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
-
     if (request.action === "analyzeCode") {
+        
         analyzeWithGPT(request.code, request.problemInfo)
             .then(response => sendResponse({ success: true, analysis: response }))
             .catch(error => {
                 console.error('OpenAI API Error:', error);
-                sendResponse({ 
-                    success: false, 
-                    error: `API Error: ${error.message}` 
+                sendResponse({
+                    success: false,
+                    error: `API Error: ${error.message}`
                 });
             });
         return true;
@@ -34,10 +36,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 
-// function to analyze code using gpt api
+// Function to analyze code using GPT API
 async function analyzeWithGPT(code, problemInfo) {
+    
     try {
-        // make api request to openai
+        
+        // Make API request to OpenAI
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -48,19 +52,19 @@ async function analyzeWithGPT(code, problemInfo) {
                 model: "gpt-3.5-turbo",
                 messages: [
                     {
-                        "role": "system",
-                        "content": `You are a helpful code reviewer specializing in algorithm problems. 
-                        When analyzing code, focus on the most critical issues first. 
-                        If there are syntax errors, point those out first. 
-                        If the code is syntactically correct, analyze the logic and efficiency.
-                        Keep responses concise and prioritized.
-                        Format your response with numbered points for critical issues.
-                        Include time and space complexity analysis when relevant.`
+                        role: "system",
+                        content: `You are a helpful code reviewer specializing in algorithm problems.
+When analyzing code, focus on the most critical issues first.
+If there are syntax errors, point those out first.
+If the code is syntactically correct, analyze the logic and efficiency.
+Keep responses concise and prioritized.
+Format your response with numbered points for critical issues.
+Include time and space complexity analysis when relevant.`
                     },
                     {
-                        "role": "user",
-                        "content": `Problem Title: ${problemInfo.title}
-                        
+                        role: "user",
+                        content: `Problem Title: ${problemInfo.title}
+
 Problem Description: ${problemInfo.description || 'Not available'}
 
 Submission Result: ${problemInfo.submissionResult?.success ? 'Accepted' : 'Failed'}
@@ -82,15 +86,13 @@ Focus on:
             })
         });
 
-
-        // check if response is successful
+        // Check if response is successful
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error?.message || 'API request failed');
         }
 
-
-        // parse and return the response data
+        // Parse and return the response data
         const data = await response.json();
         return data.choices[0].message.content;
     } catch (error) {
