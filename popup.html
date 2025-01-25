@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LeetCode Helper</title>
+    <style>
+        :root {
+            --bg-primary: #1a1b26;
+            --bg-secondary: #24283b;
+            --text-primary: #a9b1d6;
+            --text-secondary: #7aa2f7;
+            --accent: #7dcfff;
+            --success: #9ece6a;
+            --error: #f7768e;
+            --warning: #e0af68;
+            --border: #414868;
+        }
+
+        body {
+            width: 400px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            margin: 0;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        h1 {
+            color: var(--text-secondary);
+            font-size: 24px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border);
+            text-shadow: 0 0 10px var(--accent);
+        }
+
+        .container {
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+        }
+
+        button {
+            background-color: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            margin-right: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            background-color: var(--text-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        pre {
+            background-color: var(--bg-primary);
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .success-badge {
+            background-color: var(--success);
+            color: var(--bg-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .error-badge {
+            background-color: var(--error);
+            color: var(--bg-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px var(--error);
+        }
+
+        .error-details {
+            background-color: rgba(247, 118, 142, 0.1);
+            border: 1px solid var(--error);
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .timestamp {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--bg-primary);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .analysis {
+            background-color: rgba(122, 162, 247, 0.1);
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border: 1px solid var(--text-secondary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .analysis::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, var(--accent), transparent);
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .error {
+            color: var(--error);
+            background-color: rgba(247, 118, 142, 0.1);
+            border: 1px solid var(--error);
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .button-group {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Code highlighting */
+        .code-section {
+            position: relative;
+        }
+
+        .code-section::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 30px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--bg-primary));
+            pointer-events: none;
+        }
+
+        /* Glowing effects */
+        h3 {
+            color: var(--accent);
+            text-shadow: 0 0 5px var(--accent);
+        }
+
+        strong {
+            color: var(--text-secondary);
+        }
+
+        /* Add these to your existing styles */
+        .analysis-section {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .analysis-item {
+            padding: 12px;
+            margin: 8px 0;
+            background-color: var(--bg-primary);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .analysis-item strong {
+            color: var(--text-secondary);
+            font-weight: bold;
+        }
+
+        .analysis-item code {
+            background-color: rgba(122, 162, 247, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+        }
+
+        .analysis p {
+            margin: 8px 0;
+        }
+
+        .analysis-item:hover {
+            transform: translateX(4px);
+            transition: transform 0.2s ease;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px var(--accent);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px var(--accent);
+        }
+
+        h1 {
+            margin: 0;
+            border: none;
+        }
+
+        /* Update container padding to accommodate header */
+        .container {
+            padding: 15px 20px;
+        }
+    </style>
+    <script defer src="popup.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="icons/icon512.png" alt="LeetCode Helper Logo" class="logo">
+            <h1>LeetCode Helper</h1>
+        </div>
+        
+        <div class="button-group">
+            <button id="showData">Show Latest Submission</button>
+            <button id="analyzeCode">Analyze Code</button>
+        </div>
+
+        <div id="output"></div>
+        <div id="analysis"></div>
+    </div>
+</body>
+</html>

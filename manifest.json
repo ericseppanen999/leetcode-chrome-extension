@@ -1,0 +1,36 @@
+{
+    "manifest_version": 3,
+    "name": "LeetCode Helper",
+    "version": "1.0",
+    "description": "Analyze your LeetCode submissions and get feedback.",
+    "permissions": [
+        "storage",
+        "activeTab"
+    ],
+    "host_permissions": [
+        "https://leetcode.com/problems/*",
+        "https://api.openai.com/*"
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+          "16": "icons/icon16.png"
+        }
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://leetcode.com/problems/*"],
+            "js": ["content.js"],
+            "run_at": "document_end"
+        }
+    ],
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "web_accessible_resources": [{
+        "resources": ["config.js"],
+        "matches": ["<all_urls>"]
+    }]
+}
+  
